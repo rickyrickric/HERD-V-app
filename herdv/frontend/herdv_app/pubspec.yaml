@@ -1,0 +1,35 @@
+name: herdv_app
+description: HERD‑V mobile app for clustering and insights
+publish_to: "none"
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter: { sdk: flutter }
+  http: ^1.2.0
+  csv: ^6.0.0
+  fl_chart: ^1.1.1
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  path_provider: ^2.1.5
+  file_picker: ^10.3.3
+  flutter_svg: ^2.0.7
+
+dev_dependencies:
+  flutter_test: { sdk: flutter }
+  flutter_launcher_icons: ^0.10.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icons/
+    - assets/icons/cow.svg
+
+  # flutter_launcher_icons configuration
+  # To generate launcher icons from the cow SVG, convert it to a high-res PNG
+  # (e.g. assets/icons/cow-svgrepo-com.png at 1024x1024) and then run the
+  # flutter_launcher_icons generator locally (see README below).
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/cow-svgrepo-com.png"
