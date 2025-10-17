@@ -1,0 +1,64 @@
+name: Build APK on release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+
+      - name: Enable Android licenses
+        run: |
+          yes | sdkmanager --licenses
+
+      - name: Restore pub cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.yaml') }}
+
+      - name: Install dependencies
+        run: |
+          cd herdv/frontend/herdv_app
+          flutter pub get
+
+      - name: Build release APK
+        run: |
+          cd herdv/frontend/herdv_app
+          flutter build apk --release --no-shrink
+
+      - name: Create GitHub release entry
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release asset (APK)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: herdv/frontend/herdv_app/build/app/outputs/flutter-apk/app-release.apk
+          asset_name: app-release-${{ github.event.release.tag_name }}.apk
+          asset_content_type: application/vnd.android.package-archive
