@@ -62,7 +62,13 @@ Future<Map<String, dynamic>> validateCsvBytes(List<int> bytes,
     final preview =
         dataRows.take(5).map((m) => Map<String, dynamic>.from(m)).toList();
     if (missing.isEmpty) {
-      return {'valid': true, 'missing': missing, 'preview': preview};
+      return {
+        'valid': true,
+        'missing': missing,
+        'preview': preview,
+        'headers': header,
+        'rows': dataRows.length,
+      };
     }
     // If local parse is missing columns, attempt backend validation as fallback
     final v = await api.validateCsv(bytes);
@@ -74,7 +80,9 @@ Future<Map<String, dynamic>> validateCsvBytes(List<int> bytes,
     return {
       'valid': bmissing.isEmpty,
       'missing': bmissing,
-      'preview': bpreview
+      'preview': bpreview,
+      'headers': header,
+      'rows': (v['rows'] is num) ? (v['rows'] as num).toInt() : dataRows.length,
     };
   } catch (e) {
     // Fallback to backend validation if local parse fails
@@ -85,7 +93,18 @@ Future<Map<String, dynamic>> validateCsvBytes(List<int> bytes,
       final preview = (v['preview'] is List)
           ? List<Map<String, dynamic>>.from(v['preview'])
           : <Map<String, dynamic>>[];
-      return {'valid': missing.isEmpty, 'missing': missing, 'preview': preview};
+      // Derive headers from the first previewed row when the backend doesn't
+      // return them explicitly.
+      final headers = preview.isNotEmpty
+          ? preview.first.keys.toList()
+          : <String>[];
+      return {
+        'valid': missing.isEmpty,
+        'missing': missing,
+        'preview': preview,
+        'headers': headers,
+        'rows': (v['rows'] is num) ? (v['rows'] as num).toInt() : preview.length,
+      };
     } catch (e2) {
       rethrow;
     }
@@ -215,46 +234,25 @@ Future<bool> pickAndImportCsv(BuildContext context,
       return false;
     }
   }
-  // First validate and show preview
+  // First validate and show preview. The dialog is opened immediately with a
+  // parsing spinner and awaits validation internally, so the user gets
+  // feedback the moment the file is picked (larger CSVs take a moment to parse).
+  final data = bytes; // non-nullable copy for use inside closures
   try {
     onProgress?.call('Validating CSV', null);
-    final validation = await validateCsvBytes(bytes, apiClient: apiClient);
-    if (!(validation['valid'] as bool)) {
-      final msg =
-          'Invalid CSV format. Please ensure the required fields are included.';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-      return false;
-    }
-    final preview = validation['preview'] as List<Map<String, dynamic>>;
-    // Show preview dialog and ask to continue
     final proceed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Preview first rows'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: Column(
-              children: preview.take(5).map((r) {
-                return Text(r.toString());
-              }).toList(),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
-          ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Import')),
-        ],
+      barrierDismissible: false,
+      builder: (ctx) => _CsvPreviewDialog(
+        validation: validateCsvBytes(data, apiClient: apiClient),
+        onImport: () async {
+          onProgress?.call('Uploading CSV and clustering', 0.0);
+          return await importCsvFromBytes(context, data,
+              nClusters: nClusters, apiClient: apiClient, onProgress: onProgress);
+        },
       ),
     );
-    if (proceed != true) return false;
-    onProgress?.call('Uploading CSV and clustering', 0.0);
-    return await importCsvFromBytes(context, bytes,
-        nClusters: nClusters, apiClient: apiClient, onProgress: onProgress);
+    return proceed == true;
   } catch (e) {
     final msg =
         'Invalid CSV format. Please ensure the required fields are included.';
@@ -514,4 +512,180 @@ Future<Map<String, dynamic>> localClusterFromRecords(
   for (final r in records) rows.add(headers.map((h) => r[h]).toList());
   final csv = const ListToCsvConverter().convert(rows);
   return await _localClusterFromCsv(utf8.encode(csv), nClusters: nClusters);
+}
+
+// ---------------- CSV preview dialog ----------------
+/// Preview dialog that (a) shows a spinner while the CSV is parsed/validated,
+/// then (b) renders the first rows as a horizontally scrollable table, and
+/// (c) shows an inline spinner on the Import button while the import runs.
+class _CsvPreviewDialog extends StatefulWidget {
+  final Future<Map<String, dynamic>> validation;
+
+  /// Runs the actual import; returns true on success. The dialog closes with
+  /// this result once it completes.
+  final Future<bool> Function() onImport;
+
+  const _CsvPreviewDialog({required this.validation, required this.onImport});
+
+  @override
+  State<_CsvPreviewDialog> createState() => _CsvPreviewDialogState();
+}
+
+class _CsvPreviewDialogState extends State<_CsvPreviewDialog> {
+  bool _isParsing = true;
+  bool _isImporting = false;
+  bool _valid = false;
+  String? _error;
+  List<String> _headers = [];
+  List<Map<String, dynamic>> _preview = [];
+  int _totalRows = 0;
+  List<dynamic> _missing = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final v = await widget.validation;
+      if (!mounted) return;
+      setState(() {
+        _isParsing = false;
+        _valid = (v['valid'] as bool?) ?? false;
+        _preview = (v['preview'] is List)
+            ? List<Map<String, dynamic>>.from(v['preview'])
+            : <Map<String, dynamic>>[];
+        _headers = (v['headers'] is List)
+            ? List<String>.from((v['headers'] as List).map((e) => e.toString()))
+            : (_preview.isNotEmpty
+                ? _preview.first.keys.toList()
+                : <String>[]);
+        _totalRows = (v['rows'] is num) ? (v['rows'] as num).toInt() : _preview.length;
+        _missing = (v['missing'] is List) ? v['missing'] as List : <dynamic>[];
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isParsing = false;
+        _error = 'Could not parse CSV: $e';
+      });
+    }
+  }
+
+  Future<void> _handleImport() async {
+    setState(() => _isImporting = true);
+    try {
+      final ok = await widget.onImport();
+      if (mounted) Navigator.of(context).pop(ok);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isImporting = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(_isParsing
+          ? 'Reading CSV…'
+          : (_valid ? 'Preview' : 'Invalid CSV')),
+      content: SizedBox(width: double.maxFinite, child: _buildContent()),
+      actions: _buildActions(),
+    );
+  }
+
+  Widget _buildContent() {
+    if (_isParsing) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    if (_error != null) {
+      return Text(_error!);
+    }
+    if (!_valid) {
+      return Text(_missing.isEmpty
+          ? 'The file could not be validated. Please check the format.'
+          : 'Missing required columns: ${_missing.join(', ')}');
+    }
+
+    final shown = _preview.take(5).toList();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text('Showing ${shown.length} of $_totalRows rows',
+              style: const TextStyle(fontWeight: FontWeight.w600)),
+        ),
+        Flexible(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SingleChildScrollView(
+              child: DataTable(
+                columnSpacing: 18,
+                headingRowHeight: 36,
+                dataRowMinHeight: 32,
+                dataRowMaxHeight: 40,
+                columns: _headers
+                    .map((h) => DataColumn(
+                        label: Text(h,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 12))))
+                    .toList(),
+                rows: shown
+                    .map((row) => DataRow(
+                          cells: _headers
+                              .map((h) => DataCell(Text(
+                                  '${row[h] ?? ''}',
+                                  style: const TextStyle(fontSize: 12))))
+                              .toList(),
+                        ))
+                    .toList(),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _buildActions() {
+    if (_isParsing) {
+      return [
+        TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel')),
+      ];
+    }
+    if (!_valid || _error != null) {
+      return [
+        TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Close')),
+      ];
+    }
+    return [
+      TextButton(
+          onPressed: _isImporting ? null : () => Navigator.of(context).pop(false),
+          child: const Text('Cancel')),
+      ElevatedButton(
+        onPressed: _isImporting ? null : _handleImport,
+        child: _isImporting
+            ? const SizedBox(
+                height: 16,
+                width: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Text('Import'),
+      ),
+    ];
+  }
 }
