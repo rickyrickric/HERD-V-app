@@ -10,12 +10,16 @@ class AppState extends ChangeNotifier {
 
   List<Map<String, dynamic>> _records = [];
   Map<String, dynamic> _kpis = {};
+  Map<String, dynamic> _prevKpis = {};
   List<dynamic> _clusters = [];
   List<dynamic> _assignments = [];
   String? dendrogramUrl; // computed from backend base
 
   List<Map<String, dynamic>> get records => _records;
   Map<String, dynamic> get kpis => _kpis;
+
+  /// KPIs from the import prior to the current one, used to show deltas.
+  Map<String, dynamic> get prevKpis => _prevKpis;
   List<dynamic> get clusters => _clusters;
   List<dynamic> get assignments => _assignments;
 
@@ -25,6 +29,8 @@ class AppState extends ChangeNotifier {
   }
 
   set kpis(Map<String, dynamic> v) {
+    // Snapshot the outgoing KPIs so the dashboard can show deltas vs last import.
+    if (_kpis.isNotEmpty) _prevKpis = Map<String, dynamic>.from(_kpis);
     _kpis = v;
     notifyListeners();
   }
@@ -44,6 +50,7 @@ class AppState extends ChangeNotifier {
     final box = Hive.box('herdv_cache');
     box.put('records', jsonEncode(_records));
     box.put('kpis', jsonEncode(_kpis));
+    box.put('prevKpis', jsonEncode(_prevKpis));
     box.put('clusters', jsonEncode(_clusters));
     box.put('assignments', jsonEncode(_assignments));
   }
@@ -78,6 +85,14 @@ class AppState extends ChangeNotifier {
       _kpis = {};
     }
 
+    // previous-import kpis (for deltas); absent on first run
+    try {
+      final decodedPrev = jsonDecode(box.get('prevKpis', defaultValue: '{}'));
+      _prevKpis = (decodedPrev is Map) ? Map<String, dynamic>.from(decodedPrev) : {};
+    } catch (_) {
+      _prevKpis = {};
+    }
+
     // clusters and assignments can remain dynamic lists
     try {
       final decodedClusters =
@@ -99,6 +114,7 @@ class AppState extends ChangeNotifier {
   void clear() {
     _records = [];
     _kpis = {};
+    _prevKpis = {};
     _clusters = [];
     _assignments = [];
     if (Hive.isBoxOpen('herdv_cache')) Hive.box('herdv_cache').clear();

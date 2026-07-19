@@ -406,87 +406,113 @@ class _ImportScreenState extends State<ImportScreen> {
     );
   }
 
+  // ---- Manual entry field helpers ----
+
+  InputDecoration _deco(String label, {String? suffix, String? hint}) =>
+      InputDecoration(
+        labelText: label,
+        hintText: hint,
+        suffixText: suffix,
+        border: const OutlineInputBorder(),
+        isDense: true,
+      );
+
+  Widget _textField(String label, void Function(String) onSaved) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: TextFormField(
+          decoration: _deco(label),
+          validator: (v) =>
+              (v == null || v.trim().isEmpty) ? 'Required' : null,
+          onSaved: (v) => onSaved(v ?? ''),
+        ),
+      );
+
+  Widget _numField(String label, void Function(double) onSaved,
+      {String? suffix}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextFormField(
+        decoration: _deco(label, suffix: suffix),
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        validator: (v) {
+          if (v == null || v.trim().isEmpty) return 'Required';
+          if (double.tryParse(v) == null) return 'Enter a number';
+          return null;
+        },
+        onSaved: (v) => onSaved(double.tryParse(v ?? '') ?? 0),
+      ),
+    );
+  }
+
+  Widget _section(String title, IconData icon, List<Widget> children) => Card(
+        margin: const EdgeInsets.only(bottom: 12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                Icon(icon, size: 18, color: const Color(0xFF8B6F47)),
+                const SizedBox(width: 8),
+                Text(title,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 15)),
+              ]),
+              const SizedBox(height: 12),
+              ...children,
+            ],
+          ),
+        ),
+      );
+
   Widget buildManualForm() {
-    InputDecoration deco(String label) =>
-        InputDecoration(labelText: label, border: const OutlineInputBorder());
     return Form(
       key: formKey,
       child: ListView(
         children: [
-          TextFormField(
-              decoration: deco('ID'), onSaved: (v) => record['ID'] = v ?? ''),
-          TextFormField(
-              decoration: deco('Breed'),
-              onSaved: (v) => record['Breed'] = v ?? ''),
-          TextFormField(
-              decoration: deco('Age'),
-              keyboardType: TextInputType.number,
-              onSaved: (v) => record['Age'] = int.tryParse(v ?? '0') ?? 0),
-          TextFormField(
-              decoration: deco('Weight (kg)'),
-              keyboardType: TextInputType.number,
-              onSaved: (v) =>
-                  record['Weight_kg'] = double.tryParse(v ?? '0') ?? 0),
-          TextFormField(
-              decoration: deco('Milk Yield'),
-              keyboardType: TextInputType.number,
-              onSaved: (v) =>
-                  record['Milk_Yield'] = double.tryParse(v ?? '0') ?? 0),
-          TextFormField(
-              decoration: deco('Fertility Score'),
-              keyboardType: TextInputType.number,
-              onSaved: (v) =>
-                  record['Fertility_Score'] = double.tryParse(v ?? '0') ?? 0),
-          TextFormField(
-              decoration: deco('Rumination Minutes/Day'),
-              keyboardType: TextInputType.number,
-              onSaved: (v) => record['Rumination_Minutes_Per_Day'] =
-                  double.tryParse(v ?? '0') ?? 0),
-          TextFormField(
-              decoration: deco('Ear Temperature (°C)'),
-              keyboardType: TextInputType.number,
-              onSaved: (v) =>
-                  record['Ear_Temperature_C'] = double.tryParse(v ?? '0') ?? 0),
-          TextFormField(
-              decoration: deco('Parasite Load Index'),
-              keyboardType: TextInputType.number,
-              onSaved: (v) => record['Parasite_Load_Index'] =
-                  double.tryParse(v ?? '0') ?? 0),
-          TextFormField(
-              decoration: deco('Fecal Egg Count'),
-              keyboardType: TextInputType.number,
-              onSaved: (v) =>
-                  record['Fecal_Egg_Count'] = double.tryParse(v ?? '0') ?? 0),
-          TextFormField(
-              decoration: deco('Respiration Rate (BPM)'),
-              keyboardType: TextInputType.number,
-              onSaved: (v) => record['Respiration_Rate_BPM'] =
-                  double.tryParse(v ?? '0') ?? 0),
-          TextFormField(
-              decoration: deco('Forage Quality Index'),
-              keyboardType: TextInputType.number,
-              onSaved: (v) => record['Forage_Quality_Index'] =
-                  double.tryParse(v ?? '0') ?? 0),
-          SwitchListTile(
-              title: const Text('Vaccination Up To Date'),
+          _section('Identity', Icons.badge, [
+            _textField('Tag / ID', (v) => record['ID'] = v),
+            _textField('Breed', (v) => record['Breed'] = v),
+            _numField('Age', (v) => record['Age'] = v.toInt(), suffix: 'yrs'),
+            _numField('Weight', (v) => record['Weight_kg'] = v, suffix: 'kg'),
+          ]),
+          _section('Production', Icons.local_drink, [
+            _numField('Milk Yield', (v) => record['Milk_Yield'] = v,
+                suffix: 'L/day'),
+            _numField('Fertility Score',
+                (v) => record['Fertility_Score'] = v, suffix: '/10'),
+            _numField('Rumination',
+                (v) => record['Rumination_Minutes_Per_Day'] = v,
+                suffix: 'min/day'),
+            _numField('Forage Quality Index',
+                (v) => record['Forage_Quality_Index'] = v),
+            _numField('Movement Score', (v) => record['Movement_Score'] = v),
+          ]),
+          _section('Health', Icons.health_and_safety, [
+            _numField('Ear Temperature',
+                (v) => record['Ear_Temperature_C'] = v, suffix: '°C'),
+            _numField('Respiration Rate',
+                (v) => record['Respiration_Rate_BPM'] = v, suffix: 'bpm'),
+            _numField('Parasite Load Index',
+                (v) => record['Parasite_Load_Index'] = v),
+            _numField('Fecal Egg Count',
+                (v) => record['Fecal_Egg_Count'] = v, suffix: 'epg'),
+            _numField('Remaining Months',
+                (v) => record['Remaining_Months'] = v, suffix: 'mo'),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Vaccination up to date'),
               value: (record['Vaccination_Up_To_Date'] as bool),
               onChanged: (v) =>
-                  setState(() => record['Vaccination_Up_To_Date'] = v)),
-          TextFormField(
-              decoration: deco('Movement Score'),
-              keyboardType: TextInputType.number,
-              onSaved: (v) =>
-                  record['Movement_Score'] = double.tryParse(v ?? '0') ?? 0),
-          TextFormField(
-              decoration: deco('Remaining Months'),
-              keyboardType: TextInputType.number,
-              onSaved: (v) =>
-                  record['Remaining_Months'] = double.tryParse(v ?? '0') ?? 0),
-          const SizedBox(height: 12),
+                  setState(() => record['Vaccination_Up_To_Date'] = v),
+            ),
+          ]),
+          const SizedBox(height: 4),
           ElevatedButton.icon(
               onPressed: loading ? null : submitManual,
               icon: const Icon(Icons.insights),
               label: const Text('Run Clustering')),
+          const SizedBox(height: 24),
         ],
       ),
     );

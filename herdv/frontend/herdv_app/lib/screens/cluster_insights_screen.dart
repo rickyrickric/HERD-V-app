@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../state/app_state.dart';
 import '../widgets/cluster_card.dart';
 import '../widgets/charts.dart';
+import '../utils/herd_metrics.dart';
 import 'dart:convert';
 import 'dart:io' as io;
 import 'package:csv/csv.dart';
@@ -74,12 +75,12 @@ class _ClusterInsightsScreenState extends State<ClusterInsightsScreen> {
                           app.kpis['average_Milk_Yield'] != null)
                         Chip(
                             label: Text(
-                                'Avg Milk: ${app.kpis['average_Milk_Yield'].toString()}')),
+                                'Avg Milk: ${fmt(app.kpis['average_Milk_Yield'])}')),
                       if (app.kpis.isNotEmpty &&
                           app.kpis['average_Fertility_Score'] != null)
                         Chip(
                             label: Text(
-                                'Avg Fertility: ${app.kpis['average_Fertility_Score'].toString()}')),
+                                'Avg Fertility: ${fmt(app.kpis['average_Fertility_Score'])}')),
                     ])
                   ]),
             ),
@@ -124,10 +125,15 @@ class _ClusterInsightsScreenState extends State<ClusterInsightsScreen> {
           const Text('Clusters', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           ...clusters.map<Widget>((c) => ClusterCard(
-                title: 'Cluster ${c['cluster_id']}',
-                count: c['count'],
-                means: c['means'],
-                recommendation: c['recommendation'],
+                title: (c['name']?.toString().isNotEmpty ?? false)
+                    ? c['name'].toString()
+                    : 'Cluster ${c['cluster_id']}',
+                clusterId: c['cluster_id'],
+                count: (c['count'] is num) ? (c['count'] as num).toInt() : 0,
+                means: (c['means'] is Map)
+                    ? Map<String, dynamic>.from(c['means'])
+                    : <String, dynamic>{},
+                recommendation: c['recommendation']?.toString() ?? '',
                 onTap: () => Navigator.pushNamed(context, '/animals',
                     arguments: {
                       'clusterId': c['cluster_id'],

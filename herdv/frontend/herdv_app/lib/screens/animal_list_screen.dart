@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:csv/csv.dart';
 import '../state/app_state.dart';
+import '../utils/herd_metrics.dart';
 
 class AnimalListScreen extends StatefulWidget {
   final int? clusterId;
@@ -83,10 +84,7 @@ class _AnimalListScreenState extends State<AnimalListScreen> {
     return 'Cluster $id';
   }
 
-  Color _clusterColor(int? id) {
-    if (id == null) return Colors.grey;
-    return Colors.primaries[id.abs() % Colors.primaries.length];
-  }
+  Color _clusterColor(int? id) => clusterColor(id);
 
   List<Map<String, dynamic>> _filteredRecords() {
     return _allRecords.where((r) {
@@ -188,6 +186,8 @@ class _AnimalListScreenState extends State<AnimalListScreen> {
   Widget build(BuildContext context) {
     final clusters = app.clusters;
     final visible = _filteredRecords();
+    // Herd-relative risk, computed once over the whole herd (not the filtered view).
+    final stats = HerdStats.fromRecords(app.records);
 
     return Scaffold(
       appBar: AppBar(
@@ -256,6 +256,7 @@ class _AnimalListScreenState extends State<AnimalListScreen> {
                 subtitle.add(clusterName);
 
                 final badgeColor = _clusterColor(cid);
+                final level = stats.risk(r);
                 final isTop = i == 0;
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 400),
@@ -263,14 +264,35 @@ class _AnimalListScreenState extends State<AnimalListScreen> {
                       ? const Color.fromRGBO(255, 235, 59, 0.25)
                       : null,
                   child: ListTile(
-                    leading: CircleAvatar(
-                        backgroundColor: badgeColor,
-                        child: const Padding(
-                          padding: EdgeInsets.all(6.0),
-                          child: Text('🐄',
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 20)),
-                        )),
+                    leading: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        CircleAvatar(
+                            backgroundColor: badgeColor,
+                            child: const Padding(
+                              padding: EdgeInsets.all(6.0),
+                              child: Text('🐄',
+                                  style: TextStyle(
+                                      color: Colors.white, fontSize: 20)),
+                            )),
+                        // Risk dot in the corner; only shown when flagged.
+                        if (level != RiskLevel.none)
+                          Positioned(
+                            right: -2,
+                            bottom: -2,
+                            child: Container(
+                              width: 14,
+                              height: 14,
+                              decoration: BoxDecoration(
+                                color: level.color,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                    color: Colors.white, width: 2),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                     title: Text('$id'),
                     subtitle: Text(subtitle.join(' • ')),
                     onTap: () {
