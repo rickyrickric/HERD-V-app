@@ -25,12 +25,19 @@ import os
 
 app = FastAPI(title="HERD-V Backend", version="1.0")
 
-# Allow cross-origin requests from dev frontends (Flutter web). In production
-# you should restrict `allow_origins` to known hostnames.
+# Allow cross-origin requests from dev frontends (Flutter web).
+# NOTE: a wildcard origin cannot be combined with allow_credentials=True
+# (browsers reject it). We list explicit dev origins and keep credentials off.
+# In production, replace these with your real frontend hostname(s).
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=[
+        "http://localhost",
+        "http://localhost:8080",
+        "http://127.0.0.1",
+        "http://127.0.0.1:8080",
+    ],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -92,23 +99,10 @@ async def cluster(
         # Try raw request body bytes first if present (this covers web clients
         # that send text/csv or other content-types). If body is empty, fall
         # back to JSON `records`.
-        # Debug logging to help diagnose client issues
-        try:
-            print('--- /cluster incoming request headers ---')
-            for k, v in request.headers.items():
-                print(f'{k}: {v}')
-        except Exception:
-            pass
         try:
             body = await request.body()
-        except Exception as e:
-            print('error reading body:', e)
-            body = b''
-
-        try:
-            print('body length:', len(body))
         except Exception:
-            pass
+            body = b''
 
         if body and len(body) > 0:
             try:

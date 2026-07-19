@@ -6,3 +6,10 @@ numpy==1.26.4
 scikit-learn==1.4.2
 scipy==1.12.0
 pydantic==2.8.2
+# Required by FastAPI to parse multipart/form-data file uploads
+# (used by /schema/validate and /cluster UploadFile endpoints)
+python-multipart==0.0.9
+# Used to render the dendrogram and milk-yield boxplot PNGs
+matplotlib==3.9.2
+# Used to generate the PDF recommendations export
+reportlab==4.2.2

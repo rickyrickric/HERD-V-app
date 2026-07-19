@@ -33,6 +33,17 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Log dumps (e.g. adb logcat captures)
+logs/
+**/logs/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
 # Symbolication related
 app.*.symbols
 
