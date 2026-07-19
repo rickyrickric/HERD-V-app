@@ -440,7 +440,7 @@ Future<Map<String, dynamic>> _localClusterFromCsv(List<int> bytes,
     }
     clusters.add({
       'cluster_id': c,
-      'name': 'Cluster $c',
+      'name': 'Batch $c',
       'count': cnt,
       'means': m,
       'recommendation': ''

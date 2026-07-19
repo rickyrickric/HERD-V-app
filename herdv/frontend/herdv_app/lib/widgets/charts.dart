@@ -99,7 +99,7 @@ class ScatterMilkFertility extends StatelessWidget {
 
     if (entries.isEmpty) {
       return _wrap(context, const SizedBox(
-          height: 200, child: Center(child: Text('No cluster data'))));
+          height: 200, child: Center(child: Text('No batch data'))));
     }
 
     final maxCount =
@@ -193,7 +193,7 @@ class ScatterMilkFertility extends StatelessWidget {
                 color: clusterColor(e.id), shape: BoxShape.circle),
           ),
           const SizedBox(width: 4),
-          Text('Cluster ${e.id} (${e.count})',
+          Text('Batch ${e.id} (${e.count})',
               style: const TextStyle(fontSize: 11)),
         ]);
       }).toList(),
@@ -272,7 +272,7 @@ class ClusterDistributionPieChart extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title ?? 'Cluster Distribution',
+            Text(title ?? 'Batch Distribution',
                 style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             LayoutBuilder(builder: (context, constraints) {
@@ -282,13 +282,13 @@ class ClusterDistributionPieChart extends StatelessWidget {
                 children: [
                   const Padding(
                       padding: EdgeInsets.only(bottom: 8.0),
-                      child: Text('Clusters',
+                      child: Text('Batches',
                           style: TextStyle(fontWeight: FontWeight.w600))),
                   ...List<Widget>.generate(clusters.length, (i) {
                     final c = clusters[i];
                     final cid = (c['cluster_id'] ?? c['id'] ?? i) as int;
                     final color = clusterColor(cid);
-                    final name = c['name']?.toString() ?? 'Cluster ${cid}';
+                    final name = c['name']?.toString() ?? 'Batch ${cid}';
                     final cnt = (c['count'] ?? 0) as int;
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 6.0),

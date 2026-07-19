@@ -82,7 +82,7 @@ class _HealthScreenState extends State<HealthScreen> {
                         ),
                         title: Text('Animal ${a['ID'] ?? a['id'] ?? '—'}'),
                         subtitle: Text(reasons.isEmpty
-                            ? (cid != null ? 'Cluster $cid • healthy' : 'healthy')
+                            ? (cid != null ? 'Batch $cid • healthy' : 'healthy')
                             : reasons.join(' • ')),
                         trailing: Text(level.label,
                             style: TextStyle(

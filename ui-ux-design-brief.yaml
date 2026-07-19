@@ -1,0 +1,145 @@
+# HERD-V — UI/UX Design Brief
+#
+# A task manifest that maps each frontend area to a skill from the
+# ui-ux-pro-max-skill collection. It is a BRIEF, not an executable pipeline:
+# a person (or an AI agent) invokes the named skill and applies it to the
+# listed files/tasks.
+#
+# How to use with an AI assistant:
+#   "Work through ui-ux-design-brief.yaml. For each target, invoke the named
+#    skill and apply it to the listed files."
+#
+# Skills live in:
+#   C:/Users/imung/.claude/skills/ui-ux-pro-max-skill/.claude/skills/
+# Invoke a skill by its `name` (e.g. /ui-ux-pro-max) once it is registered
+# with your assistant.
+
+meta:
+  project: HERD-V
+  description: >-
+    Flutter app for cattle-herd clustering (FastAPI + scikit-learn backend).
+    This brief drives a visual/UX pass over the Flutter frontend.
+  app_root: herdv/frontend/herdv_app
+  stack: flutter
+  theme:
+    seed_color: "0xFF6B8E23"   # olive green
+    background: "0xFFF6F2E8"   # warm parchment
+    palette: earthy            # olive / brown / teal / ochre — see lib/utils/herd_metrics.dart
+
+# Skills referenced by this brief. Names match the SKILL.md `name:` field.
+skills:
+  - name: ui-ux-pro-max
+    role: >-
+      Design intelligence — styles, color palettes, font pairings, UX
+      guidelines, and chart-type selection. Use for high-level design and
+      review decisions.
+  - name: ui-styling
+    role: >-
+      Component-level styling, responsive layout, accessible states, theming.
+      Use when adjusting specific widgets.
+  - name: design-system
+    role: >-
+      Token architecture (spacing/typography scales, semantic colors) so the
+      earthy theme is applied consistently instead of ad-hoc constants.
+
+# Cross-cutting rules every target must respect.
+principles:
+  - Clusters are categorical — never imply an order/trend between them.
+  - All risk/status coloring is HERD-RELATIVE (mean ± 1 std dev), not fixed
+    0-1 thresholds. Backend returns RAW values (parasite ~35-70, fertility ~5-8).
+  - One cluster color everywhere (donut, bubble chart, cluster card, risk dot)
+    via clusterColor() in lib/utils/herd_metrics.dart.
+  - Round displayed numbers to 2 dp via fmt(); never show raw floats.
+  - Meet WCAG AA contrast for status colors and text on the parchment background.
+
+# Each target = one screen/widget, the skill to apply, and concrete tasks.
+targets:
+  dashboard:
+    file: lib/screens/dashboard_screen.dart
+    skill: ui-ux-pro-max
+    tasks:
+      - Review KPI cards: status color + delta vs last import; verify the
+        green/amber/red thresholds read correctly for a farmer.
+      - Confirm the at-risk preview list is scannable and the empty/healthy
+        states are clear.
+      - Ensure Clear/Reset reads as destructive (red, confirm dialog).
+
+  kpi_card:
+    file: lib/widgets/kpi_card.dart
+    skill: ui-styling
+    tasks:
+      - Tune the status color band, delta typography, and spacing.
+      - Verify contrast of value/label text on card background 0xFFE9E2CF.
+
+  cluster_insights:
+    file: lib/screens/cluster_insights_screen.dart
+    skill: ui-ux-pro-max
+    tasks:
+      - Validate chart-type choice — bubble/scatter (NOT line) for categorical
+        clusters. Reference the 25 chart-type guidelines.
+      - Review Overview chips and card hierarchy.
+
+  charts:
+    file: lib/widgets/charts.dart
+    skill: ui-styling
+    tasks:
+      - Style the bubble chart — bubble sizing by population, axis labels,
+        legend, per-cluster color from clusterColor().
+      - Align the donut colors to the same shared palette.
+
+  health_overview:
+    file: lib/screens/health_screen.dart
+    skill: ui-ux-pro-max
+    tasks:
+      - Review the risk dot + sort-by-risk interaction and the legend.
+      - Confirm row density and the healthy/watch/at-risk labels are legible.
+
+  animal_detail:
+    file: lib/screens/animal_detail_screen.dart
+    skill: ui-styling
+    tasks:
+      - Style the risk explanation card (why flagged + suggested action).
+      - Improve the raw-metrics list readability.
+
+  animal_list:
+    file: lib/screens/animal_list_screen.dart
+    skill: ui-styling
+    tasks:
+      - Style the cluster avatar + risk-dot overlay per row.
+      - Review search/filter bar layout.
+
+  add_animal_form:
+    file: lib/screens/import_screen.dart
+    skill: ui-ux-pro-max
+    tasks:
+      - Review the sectioned form (Identity / Production / Health) and inline
+        units against form-design UX guidelines.
+      - Verify numeric keyboards and validation feedback.
+
+  design_tokens:
+    file: lib/utils/herd_metrics.dart
+    skill: design-system
+    tasks:
+      - Formalize the earthy palette and risk colors as named tokens.
+      - Define spacing/typography scales so screens stop using ad-hoc constants.
+
+# Suggested order — foundation first, then screens, then a review pass.
+workflow:
+  - step: tokens
+    skill: design-system
+    targets: [design_tokens]
+  - step: components
+    skill: ui-styling
+    targets: [kpi_card, charts, animal_detail, animal_list]
+  - step: screens
+    skill: ui-ux-pro-max
+    targets: [dashboard, cluster_insights, health_overview, add_animal_form]
+  - step: review
+    skill: ui-ux-pro-max
+    targets: all
+    note: Final accessibility + consistency pass against `principles`.
+
+# Gate every change on these before considering a target done.
+verification:
+  - cd herdv/frontend/herdv_app && flutter analyze   # must report no issues
+  - cd herdv/frontend/herdv_app && flutter test       # existing tests must pass

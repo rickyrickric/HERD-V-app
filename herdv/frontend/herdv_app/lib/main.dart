@@ -26,12 +26,46 @@ class HerdVApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Style: "Organic Biophilic" (ui-ux-pro-max recommendation for a
+    // livestock/health product) — earthy palette, rounded corners (16-24px),
+    // soft natural shadows. Applied at the theme level so every screen inherits
+    // consistent shape and elevation.
+    const seed = Color(0xFF6B8E23); // olive green
+    final scheme = ColorScheme.fromSeed(seedColor: seed);
     final earthy = ThemeData(
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF6B8E23), // olive green
-      ),
+      colorScheme: scheme,
       useMaterial3: true,
       scaffoldBackgroundColor: const Color(0xFFF6F2E8), // warm parchment
+      cardTheme: CardThemeData(
+        elevation: 1.5,
+        shadowColor: Colors.black.withValues(alpha: 0.15),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+        margin: const EdgeInsets.symmetric(vertical: 6),
+      ),
+      chipTheme: ChipThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      ),
     );
 
     return MaterialApp(

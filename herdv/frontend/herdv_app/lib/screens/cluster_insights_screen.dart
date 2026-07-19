@@ -42,7 +42,7 @@ class _ClusterInsightsScreenState extends State<ClusterInsightsScreen> {
   Widget build(BuildContext context) {
     final clusters = app.clusters;
     return Scaffold(
-      appBar: AppBar(title: const Text('Cluster Insights')),
+      appBar: AppBar(title: const Text('Batch Insights')),
       body: ListView(
         padding: const EdgeInsets.all(12),
         children: [
@@ -57,7 +57,7 @@ class _ClusterInsightsScreenState extends State<ClusterInsightsScreen> {
                         style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
                     Wrap(spacing: 12, runSpacing: 8, children: [
-                      Chip(label: Text('Clusters: ${clusters.length}')),
+                      Chip(label: Text('Batches: ${clusters.length}')),
                       GestureDetector(
                         onTap: () {
                           Navigator.pushNamed(context, '/animals', arguments: {
@@ -96,7 +96,7 @@ class _ClusterInsightsScreenState extends State<ClusterInsightsScreen> {
                 if (narrow) {
                   return Column(children: [
                     ClusterDistributionPieChart(
-                        clusters: clusters, title: 'Cluster Distribution'),
+                        clusters: clusters, title: 'Batch Distribution'),
                     const SizedBox(height: 12),
                     ScatterMilkFertility(
                         clusters: clusters, title: 'Milk Yield vs Fertility')
@@ -109,7 +109,7 @@ class _ClusterInsightsScreenState extends State<ClusterInsightsScreen> {
                           flex: 3,
                           child: ClusterDistributionPieChart(
                               clusters: clusters,
-                              title: 'Cluster Distribution')),
+                              title: 'Batch Distribution')),
                       const SizedBox(width: 12),
                       Expanded(
                           flex: 4,
@@ -122,12 +122,12 @@ class _ClusterInsightsScreenState extends State<ClusterInsightsScreen> {
           ),
           const SizedBox(height: 12),
           // ---- Clusters ----
-          const Text('Clusters', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text('Batches', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           ...clusters.map<Widget>((c) => ClusterCard(
                 title: (c['name']?.toString().isNotEmpty ?? false)
                     ? c['name'].toString()
-                    : 'Cluster ${c['cluster_id']}',
+                    : 'Batch ${c['cluster_id']}',
                 clusterId: c['cluster_id'],
                 count: (c['count'] is num) ? (c['count'] as num).toInt() : 0,
                 means: (c['means'] is Map)

@@ -21,12 +21,12 @@ class _AnimalListScreenState extends State<AnimalListScreen> {
   @override
   void initState() {
     super.initState();
+    // The constructor arg only *initializes* the selection; after this the
+    // dropdown's _filterClusterId is the single source of truth for both the
+    // list filter and the AppBar title.
     _filterClusterId = widget.clusterId;
     app.addListener(_onAppChanged);
     _scrollController = ScrollController();
-    _screenTitle = (widget.clusterName == null || widget.clusterName!.isEmpty)
-        ? 'Animals'
-        : widget.clusterName!;
     // check navigation arguments for highlight/scroll flags
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final args = ModalRoute.of(context)?.settings.arguments;
@@ -81,7 +81,7 @@ class _AnimalListScreenState extends State<AnimalListScreen> {
       });
       if (c is Map && c.containsKey('name')) return c['name'].toString();
     } catch (_) {}
-    return 'Cluster $id';
+    return 'Batch $id';
   }
 
   Color _clusterColor(int? id) => clusterColor(id);
@@ -101,32 +101,13 @@ class _AnimalListScreenState extends State<AnimalListScreen> {
 
   late ScrollController _scrollController;
   bool _highlightTop = false;
-  late String _screenTitle;
 
-  Future<void> _editTitle() async {
-    final controller = TextEditingController(text: _screenTitle);
-    final result = await showDialog<String>(
-        context: context,
-        builder: (_) => AlertDialog(
-              title: const Text('Edit title'),
-              content: TextField(
-                controller: controller,
-                decoration: const InputDecoration(hintText: 'Title'),
-                autofocus: true,
-              ),
-              actions: [
-                TextButton(
-                    onPressed: () => Navigator.pop(_, null),
-                    child: const Text('Cancel')),
-                ElevatedButton(
-                    onPressed: () => Navigator.pop(_, controller.text.trim()),
-                    child: const Text('Save'))
-              ],
-            ));
-    if (result != null && result.isNotEmpty) {
-      setState(() => _screenTitle = result);
-    }
-  }
+  /// Title derives from the same state field the dropdown drives
+  /// (`_filterClusterId`), so it can never drift out of sync with the
+  /// selected filter. When no batch is selected we show a generic title and
+  /// let the dropdown be the single place that shows/changes the filter.
+  String get _screenTitle =>
+      _filterClusterId == null ? 'Herd batches' : _clusterNameForId(_filterClusterId);
 
   void _scrollToTopAndHighlight({bool hl = true}) {
     try {
@@ -191,10 +172,9 @@ class _AnimalListScreenState extends State<AnimalListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: GestureDetector(
-          onTap: _editTitle,
-          child: Text(_screenTitle),
-        ),
+        // Title derives from the same state the dropdown writes, so it can
+        // never drift out of sync with the current filter selection.
+        title: Text(_screenTitle),
         actions: [
           IconButton(
               onPressed: () => _exportVisible(visible),
@@ -221,7 +201,8 @@ class _AnimalListScreenState extends State<AnimalListScreen> {
                 value: _filterClusterId,
                 hint: const Text('Filter'),
                 items: [
-                  const DropdownMenuItem<int?>(value: null, child: Text('All')),
+                  const DropdownMenuItem<int?>(
+                      value: null, child: Text('All batches')),
                   ...clusters.map<DropdownMenuItem<int?>>((c) {
                     final id =
                         (c is Map && (c['cluster_id'] ?? c['id']) != null)
@@ -229,7 +210,7 @@ class _AnimalListScreenState extends State<AnimalListScreen> {
                             : null;
                     final name = (c is Map && c['name'] != null)
                         ? c['name'].toString()
-                        : 'Cluster ${id ?? '?'}';
+                        : 'Batch ${id ?? '?'}';
                     return DropdownMenuItem<int?>(value: id, child: Text(name));
                   }).toList()
                 ],
@@ -269,12 +250,10 @@ class _AnimalListScreenState extends State<AnimalListScreen> {
                       children: [
                         CircleAvatar(
                             backgroundColor: badgeColor,
-                            child: const Padding(
-                              padding: EdgeInsets.all(6.0),
-                              child: Text('🐄',
-                                  style: TextStyle(
-                                      color: Colors.white, fontSize: 20)),
-                            )),
+                            // SVG/vector icon instead of an emoji glyph
+                            // (ui-ux-pro-max: "no emoji as icons").
+                            child: const Icon(Icons.pets,
+                                color: Colors.white, size: 20)),
                         // Risk dot in the corner; only shown when flagged.
                         if (level != RiskLevel.none)
                           Positioned(

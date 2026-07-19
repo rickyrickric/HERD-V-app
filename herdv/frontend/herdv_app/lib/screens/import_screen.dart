@@ -108,7 +108,7 @@ class _ImportScreenState extends State<ImportScreen> {
           'Import successful: records=${app.records.length}, clusters=${app.clusters.length}');
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
-              'Imported ${app.records.length} rows — ${app.clusters.length} clusters')));
+              'Imported ${app.records.length} rows — ${app.clusters.length} batches')));
       await showPostImportDialog(context, api, app);
       Navigator.pop(context);
     } catch (e) {
@@ -132,7 +132,7 @@ class _ImportScreenState extends State<ImportScreen> {
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           Text('Rows imported: ${app.records.length}'),
           const SizedBox(height: 8),
-          Text('Clusters: ${app.clusters.length}'),
+          Text('Batches: ${app.clusters.length}'),
         ]),
         actions: [
           TextButton(
@@ -144,7 +144,7 @@ class _ImportScreenState extends State<ImportScreen> {
                   await showDialog<void>(
                       context: ctx,
                       builder: (_) => AlertDialog(
-                            title: const Text('Clustering Comparison'),
+                            title: const Text('Batch Comparison'),
                             content: SingleChildScrollView(
                                 child: Text(
                                     'Counts: ${res['counts']}\nARI: ${res['ari']}')),
@@ -159,7 +159,7 @@ class _ImportScreenState extends State<ImportScreen> {
                       .showSnackBar(SnackBar(content: Text('Error: $e')));
                 }
               },
-              child: const Text('Compare Clusterings')),
+              child: const Text('Compare Batches')),
           TextButton(
               onPressed: () async {
                 Navigator.of(c).pop();
@@ -265,7 +265,7 @@ class _ImportScreenState extends State<ImportScreen> {
       app.cache();
       setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Manual entry clustered')));
+          const SnackBar(content: Text('Manual entry added to batches')));
       Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context)
@@ -366,9 +366,9 @@ class _ImportScreenState extends State<ImportScreen> {
                   min: 2,
                   max: 8,
                   divisions: 6,
-                  label: '$nClusters clusters',
+                  label: '$nClusters batches',
                   onChanged: (v) => setState(() => nClusters = v.toInt()))),
-          Text('$nClusters clusters'),
+          Text('$nClusters batches'),
         ]),
         const SizedBox(height: 8),
         ElevatedButton.icon(
@@ -511,7 +511,7 @@ class _ImportScreenState extends State<ImportScreen> {
           ElevatedButton.icon(
               onPressed: loading ? null : submitManual,
               icon: const Icon(Icons.insights),
-              label: const Text('Run Clustering')),
+              label: const Text('Run Batching')),
           const SizedBox(height: 24),
         ],
       ),

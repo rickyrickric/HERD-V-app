@@ -153,7 +153,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ? null
                   : () => Navigator.pushNamed(context, '/clusters'),
               icon: const Icon(Icons.insights),
-              label: const Text('View Cluster Insights'),
+              label: const Text('View Batch Insights'),
             ),
             const SizedBox(height: 8),
             TextButton.icon(
@@ -235,7 +235,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Clear all data?'),
         content: const Text(
-            'This removes the imported herd, clusters, and cached results from '
+            'This removes the imported herd, batches, and cached results from '
             'this device. This cannot be undone.'),
         actions: [
           TextButton(
